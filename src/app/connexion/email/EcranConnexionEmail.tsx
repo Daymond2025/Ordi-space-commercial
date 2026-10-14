@@ -10,10 +10,12 @@ import { ChampAuth } from "@/components/auth/ChampAuth";
 import { BoutonAuthCompact } from "@/components/auth/BoutonAuthCompact";
 
 /**
- * Le Commercial n'a pas de 2FA (roles_2fa_obligatoire() ne liste que
- * Coordinateur/Admin côté backend) — connexion simple email + mot de passe.
+ * Connexion par e-mail + mot de passe — repli pour les comptes créés avant
+ * le passage au téléphone+OTP (voir /connexion, désormais l'écran
+ * principal). Le Commercial n'a pas de 2FA (roles_2fa_obligatoire() ne
+ * liste que Coordinateur/Admin côté backend).
  */
-export function EcranConnexion() {
+export function EcranConnexionEmail() {
   const { user, pret, login } = useAuth();
   const router = useRouter();
 
@@ -97,8 +99,8 @@ export function EcranConnexion() {
           connexion
         </BoutonAuthCompact>
 
-        <Link href="/inscription" className="mt-4 text-center text-sm font-semibold text-brand-muted underline underline-offset-2">
-          Pas encore de compte ? Créer un compte
+        <Link href="/connexion" className="mt-4 text-center text-sm font-semibold text-brand-muted underline underline-offset-2">
+          Se connecter par numéro whatsapp
         </Link>
       </form>
     </main>

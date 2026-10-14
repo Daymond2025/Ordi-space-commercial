@@ -31,12 +31,20 @@ export type DonneesInscription = {
   password_confirmation: string;
 };
 
+type DemandeOtpResultat = { compteExistant: boolean; userId?: number; codeDebug?: string };
+type InscriptionTelephoneResultat = { userId: number; codeDebug?: string };
+
 type AuthContextValue = {
   user: Utilisateur | null;
   token: string | null;
   pret: boolean;
+  /** @deprecated Conservé pour les comptes déjà créés par e-mail/mot de passe — voir /connexion/email. */
   login: (email: string, password: string) => Promise<void>;
+  /** @deprecated Plus utilisé par aucun écran — les nouvelles inscriptions passent par inscrireParTelephone(). */
   register: (donnees: DonneesInscription) => Promise<void>;
+  demanderOtp: (telephone: string) => Promise<DemandeOtpResultat>;
+  inscrireParTelephone: (telephone: string, nom: string, prenom?: string) => Promise<InscriptionTelephoneResultat>;
+  verifierOtpInscription: (userId: number, code: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -139,8 +147,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STOCKAGE_CLE);
   }
 
+  /** Étape 1 de la connexion/inscription par téléphone — voir Api\Auth\TelephoneAuthController::demanderOtp(). */
+  async function demanderOtp(telephone: string): Promise<DemandeOtpResultat> {
+    const reponse = await apiFetch<{ compte_existant: boolean; user_id?: number; code_debug?: string }>(
+      "/auth/telephone/otp",
+      { method: "POST", body: { telephone, type_utilisateur: "commercial" } }
+    );
+
+    return { compteExistant: reponse.compte_existant, userId: reponse.user_id, codeDebug: reponse.code_debug };
+  }
+
+  /** Numéro inconnu à l'étape précédente — crée le compte (voir TelephoneAuthController::inscrire()). */
+  async function inscrireParTelephone(telephone: string, nom: string, prenom?: string): Promise<InscriptionTelephoneResultat> {
+    const reponse = await apiFetch<{ user_id: number; code_debug?: string }>("/auth/telephone/inscription", {
+      method: "POST",
+      body: { telephone, nom, prenom, type_utilisateur: "commercial" },
+    });
+
+    return { userId: reponse.user_id, codeDebug: reponse.code_debug };
+  }
+
+  /** Dernière étape, commune aux deux chemins ci-dessus — code reçu par WhatsApp. */
+  async function verifierOtpInscription(userId: number, code: string) {
+    const reponse = await apiFetch<SessionResult>("/auth/verify-otp", {
+      method: "POST",
+      body: { user_id: userId, code, device_name: NOM_APPAREIL },
+    });
+
+    accesRefuseSiRoleInvalide(reponse.user);
+    memoriser(reponse);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, pret, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, pret, login, register, demanderOtp, inscrireParTelephone, verifierOtpInscription, logout }}>
       {children}
     </AuthContext.Provider>
   );

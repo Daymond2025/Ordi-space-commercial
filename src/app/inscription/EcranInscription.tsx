@@ -2,67 +2,53 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ApiRequestError } from "@/lib/api";
 import { ChampAuth } from "@/components/auth/ChampAuth";
 import { BoutonAuthCompact } from "@/components/auth/BoutonAuthCompact";
+import { ChevronLeftIcon } from "@/components/icons";
 
 /**
- * Contrairement au Coordinateur (créé par un Administrateur, aucun écran
- * d'inscription à répliquer), le Commercial s'auto-inscrit — seul chemin
- * d'onboarding existant pour ce rôle (POST /auth/register, voir
- * roles_auto_inscription() côté backend). Contrairement au Fournisseur
- * (nom d'entreprise) ou au Livreur (documents), aucun champ "métier" n'est
- * exigé en plus des champs d'identité habituels — voir RegisterRequest.
+ * Numéro inconnu à l'écran /connexion — finalise la création du compte par
+ * téléphone+OTP (uniformisation de l'auth, voir TelephoneAuthController::
+ * inscrire()). Aucun champ "métier" en plus de nom/prénom — contrairement
+ * au Fournisseur (nom d'entreprise) ou au Livreur (documents), aucune règle
+ * required_if pour type_utilisateur=commercial.
  */
 export function EcranInscription() {
-  const { user, pret, register } = useAuth();
+  const { inscrireParTelephone } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const telephone = searchParams.get("telephone") ?? "";
 
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
-  const [telephone, setTelephone] = useState("");
-  const [email, setEmail] = useState("");
-  const [motDePasse, setMotDePasse] = useState("");
-  const [confirmationMotDePasse, setConfirmationMotDePasse] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(false);
-
-  useEffect(() => {
-    if (pret && user) router.replace("/");
-  }, [pret, user, router]);
 
   async function onSoumettre(event: FormEvent) {
     event.preventDefault();
     setErreur(null);
 
-    if (!nom.trim() || !email.trim() || !motDePasse) {
-      setErreur("Remplis tous les champs obligatoires.");
+    if (!telephone) {
+      setErreur("Numéro manquant — recommence depuis l'écran de connexion.");
       return;
     }
-
-    if (motDePasse !== confirmationMotDePasse) {
-      setErreur("Les mots de passe ne correspondent pas.");
+    if (!nom.trim()) {
+      setErreur("Le nom est requis.");
       return;
     }
 
     setChargement(true);
     try {
-      await register({
-        nom,
-        prenom: prenom.trim() || undefined,
-        telephone: telephone.trim() || undefined,
-        email,
-        password: motDePasse,
-        password_confirmation: confirmationMotDePasse,
-      });
+      const resultat = await inscrireParTelephone(telephone, nom, prenom.trim() || undefined);
+      const params = new URLSearchParams({ telephone, user_id: String(resultat.userId) });
+      if (resultat.codeDebug) params.set("code_debug", resultat.codeDebug);
+
+      router.push(`/connexion/verification?${params.toString()}`);
     } catch (e) {
-      // Formulaire à plusieurs champs (contrairement à la connexion, qui n'a
-      // qu'une seule cause d'erreur possible) : on affiche le premier message
-      // de champ renvoyé par la validation quand il existe, plus précis que
-      // le message générique "Les données envoyées ne sont pas valides.".
       const premierMessageDeChamp = e instanceof ApiRequestError ? Object.values(e.fields ?? {})[0]?.[0] : undefined;
       setErreur(premierMessageDeChamp ?? (e instanceof ApiRequestError ? e.message : "Impossible de créer le compte. Vérifiez votre connexion internet."));
     } finally {
@@ -73,6 +59,10 @@ export function EcranInscription() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col bg-white pb-10 md:my-6 md:min-h-[calc(100dvh-3rem)] md:max-h-[calc(100dvh-3rem)] md:overflow-y-auto md:rounded-[2rem] md:shadow-2xl md:shadow-slate-900/15 md:ring-1 md:ring-black/5">
       <div className="bg-gradient-brand-blue relative flex flex-col items-center rounded-b-[2.5rem] px-6 pb-6 pt-6 text-white">
+        <button type="button" onClick={() => router.back()} className="absolute left-4 top-6 flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
+          <ChevronLeftIcon className="h-5 w-5" />
+        </button>
+
         <h1 className="mt-2 text-center text-2xl font-extrabold leading-snug">
           Crée ton compte
           <br />
@@ -93,20 +83,13 @@ export function EcranInscription() {
         <div className="mx-auto mb-6 h-1.5 w-12 rounded-full bg-brand-line" />
 
         <h2 className="text-center text-lg font-bold text-brand-ink">Tes informations</h2>
+        {telephone ? (
+          <p className="mt-1 text-center text-sm font-semibold text-[color:var(--brand-blue-end)]">+{telephone.replace(/^\+/, "")}</p>
+        ) : null}
 
         <div className="mt-6 flex flex-col gap-3.5">
           <ChampAuth type="text" value={nom} onChange={setNom} placeholder="Nom" autoComplete="family-name" autoFocus />
           <ChampAuth type="text" value={prenom} onChange={setPrenom} placeholder="Prénom (optionnel)" autoComplete="given-name" />
-          <ChampAuth type="tel" value={telephone} onChange={setTelephone} placeholder="Téléphone (optionnel)" autoComplete="tel" />
-          <ChampAuth type="email" value={email} onChange={setEmail} placeholder="Adresse e-mail" autoComplete="email" />
-          <ChampAuth type="password" value={motDePasse} onChange={setMotDePasse} placeholder="Mot de passe" autoComplete="new-password" />
-          <ChampAuth
-            type="password"
-            value={confirmationMotDePasse}
-            onChange={setConfirmationMotDePasse}
-            placeholder="Confirmer le mot de passe"
-            autoComplete="new-password"
-          />
         </div>
 
         {erreur ? <p className="mt-4 text-center text-xs text-rose-500">{erreur}</p> : null}
