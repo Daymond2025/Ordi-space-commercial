@@ -9,6 +9,7 @@ import { ChevronLeftIcon, MonitorIcon } from "@/components/icons";
 import { CarteEnTeteNoir } from "@/components/commande/CarteEnTeteNoir";
 import { DetailCommande } from "@/components/discussion/DetailCommande";
 import { formaterMontant, type DonneesCommandeCreee, type ExtractionTexte, type Localite, type ProduitChoix } from "@/lib/types";
+import { useRetour } from "@/lib/navigation";
 
 const CHAMP = "w-full rounded-full bg-white px-4 py-2.5 text-sm text-brand-ink outline-none placeholder:text-brand-muted";
 const CHAMP_RECAP = "w-full rounded-xl border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink outline-none placeholder:text-brand-muted";
@@ -43,6 +44,7 @@ function formaterDateHeure(date: Date): string {
 export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
   const { token } = useAuth();
   const router = useRouter();
+  const retour = useRetour(`/produit/${produitId}`);
 
   const [produit, setProduit] = useState<ProduitChoix | null>(null);
   const [localites, setLocalites] = useState<Localite[] | null>(null);
@@ -254,7 +256,7 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
       <div className="flex h-full flex-col overflow-y-auto">
         <div className="bg-gradient-espace shrink-0 rounded-b-[28px] px-4 pb-6 pt-4 text-white">
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => router.back()} aria-label="Retour" className="flex h-8 w-8 shrink-0 items-center justify-center">
+            <button type="button" onClick={retour} aria-label="Retour" className="flex h-8 w-8 shrink-0 items-center justify-center">
               <ChevronLeftIcon className="h-5 w-5" />
             </button>
             <p className="flex-1 text-center text-lg font-extrabold">Nouvelle commande</p>

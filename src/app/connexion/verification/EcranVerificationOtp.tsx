@@ -8,6 +8,7 @@ import { ApiRequestError } from "@/lib/api";
 import { SaisieCodeOtp } from "@/components/auth/SaisieCodeOtp";
 import { BoutonAuthCompact } from "@/components/auth/BoutonAuthCompact";
 import { ChevronLeftIcon } from "@/components/icons";
+import { useRetour } from "@/lib/navigation";
 
 // Doit correspondre à OTP_LONGUEUR côté backend (app/Helpers/const.php).
 const LONGUEUR_CODE = 6;
@@ -20,6 +21,7 @@ function formaterTelephoneAffiche(telephone: string): string {
 export function EcranVerificationOtp() {
   const { demanderOtp, verifierOtpInscription } = useAuth();
   const router = useRouter();
+  const retour = useRetour("/connexion");
   const searchParams = useSearchParams();
 
   const telephone = searchParams.get("telephone") ?? "";
@@ -73,7 +75,7 @@ export function EcranVerificationOtp() {
   return (
     <main className="bg-gradient-brand-blue mx-auto flex min-h-dvh w-full max-w-xl flex-col text-white md:my-6 md:min-h-[calc(100dvh-3rem)] md:max-h-[calc(100dvh-3rem)] md:overflow-y-auto md:rounded-[2rem] md:shadow-2xl md:shadow-slate-900/15 md:ring-1 md:ring-black/5">
       <div className="relative px-6 pt-6">
-        <button type="button" onClick={() => router.back()} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
+        <button type="button" onClick={retour} aria-label="Retour" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
           <ChevronLeftIcon className="h-5 w-5" />
         </button>
       </div>

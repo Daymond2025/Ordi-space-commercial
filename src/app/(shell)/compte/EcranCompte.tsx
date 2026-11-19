@@ -27,6 +27,7 @@ import {
   type StatistiquesCommercial,
   type Tutoriel,
 } from "@/lib/types";
+import { useRetour } from "@/lib/navigation";
 
 const CARTE_OMBRE = { boxShadow: "0px 1px 1px 0px rgba(0, 0, 0, 0.25)" };
 
@@ -88,6 +89,7 @@ function LigneMenu({ icone, iconeClasse, label, onClick }: { icone: ReactNode; i
 export function EcranCompte() {
   const { token } = useAuth();
   const router = useRouter();
+  const retour = useRetour("/");
   const [profil, setProfil] = useState<ProfilUtilisateur | null>(null);
   const [stats, setStats] = useState<StatistiquesCommercial | null>(null);
   const [nombreContenus, setNombreContenus] = useState<number | null>(null);
@@ -171,7 +173,7 @@ export function EcranCompte() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={retour}
             aria-label="Retour"
             className="flex h-[31px] w-8 shrink-0 items-center justify-center rounded-[7px]"
             style={{ background: "rgba(255, 255, 255, 0.23)" }}

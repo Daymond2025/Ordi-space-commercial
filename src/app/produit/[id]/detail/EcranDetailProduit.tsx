@@ -25,6 +25,7 @@ import {
 import { VisionneuseImages } from "@/components/produit/VisionneuseImages";
 import { ETATS_PRODUIT } from "@/lib/produitBoutique";
 import type { ProduitDetail } from "@/lib/types";
+import { useRetour } from "@/lib/navigation";
 
 const ONGLETS = [
   { id: "cadeaux", label: "Les cadeaux" },
@@ -121,6 +122,7 @@ type IconeSpec = ComponentType<SVGProps<SVGSVGElement>>;
 export function EcranDetailProduit({ produitId }: { produitId: number }) {
   const { token } = useAuth();
   const router = useRouter();
+  const retour = useRetour("/catalogue");
   const [produit, setProduit] = useState<ProduitDetail | null>(null);
   const [imageActive, setImageActive] = useState(0);
   const [visionneuseOuverte, setVisionneuseOuverte] = useState(false);
@@ -228,7 +230,7 @@ export function EcranDetailProduit({ produitId }: { produitId: number }) {
         <div className="flex w-full items-center gap-3">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={retour}
             aria-label="Retour"
             className="flex h-[31px] w-8 shrink-0 items-center justify-center rounded-[7px]"
             style={{ background: "rgba(255, 255, 255, 0.23)" }}

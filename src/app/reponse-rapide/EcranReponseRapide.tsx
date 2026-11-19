@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { ChevronDownIcon, ChevronLeftIcon, SearchIcon } from "@/components/icons";
 import type { ReponseRapide } from "@/lib/types";
+import { useRetour } from "@/lib/navigation";
 
 const ONGLETS = [
   { id: "tout", label: "Tout" },
@@ -29,7 +29,7 @@ const LIBELLES_TRI: Record<Tri, string> = { recent: "Plus récent", alphabetique
  */
 export function EcranReponseRapide() {
   const { token } = useAuth();
-  const router = useRouter();
+  const retour = useRetour("/compte");
   const [onglet, setOnglet] = useState<Onglet>("tout");
   const [tri, setTri] = useState<Tri>("recent");
   const [triOuvert, setTriOuvert] = useState(false);
@@ -88,7 +88,7 @@ export function EcranReponseRapide() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.push("/compte")}
+            onClick={retour}
             aria-label="Retour"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
             style={{ background: "rgba(255, 255, 255, 0.23)" }}

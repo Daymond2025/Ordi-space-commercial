@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -9,6 +8,7 @@ import { ChevronLeftIcon, MonitorIcon } from "@/components/icons";
 import { SelecteurPeriode } from "@/components/space/SelecteurPeriode";
 import { CarteStatistique } from "@/components/space/CarteStatistique";
 import type { PeriodeEspace, ProduitPlusVendu, StatistiquesDetailCommercial } from "@/lib/types";
+import { useRetour } from "@/lib/navigation";
 
 function formaterDot(valeur: number, suffixe: string): string {
   return `${Math.round(valeur).toLocaleString("en-US").replace(/,/g, ".")} ${suffixe}`;
@@ -66,7 +66,7 @@ function CarteProduitVendu({ produit }: { produit: ProduitPlusVendu }) {
  */
 export function EcranStatistiques() {
   const { token } = useAuth();
-  const router = useRouter();
+  const retour = useRetour("/compte");
 
   const [periode, setPeriode] = useState<PeriodeEspace>("semaine");
   const [stats, setStats] = useState<StatistiquesDetailCommercial | null>(null);
@@ -101,7 +101,7 @@ export function EcranStatistiques() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={retour}
             aria-label="Retour"
             className="flex h-[31px] w-8 shrink-0 items-center justify-center rounded-[7px]"
             style={{ background: "rgba(255, 255, 255, 0.23)" }}

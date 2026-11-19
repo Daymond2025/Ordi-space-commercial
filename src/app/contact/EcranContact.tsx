@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { ChevronLeftIcon, ChevronRightIcon, PhoneFilledIcon, WhatsappIcon } from "@/components/icons";
+import { useRetour } from "@/lib/navigation";
 
 type ContactService = { nom: string; appel: string | null; whatsapp: string | null; whatsapp_url: string | null };
 
@@ -57,7 +57,7 @@ function CarteContact({
  */
 export function EcranContact() {
   const { token } = useAuth();
-  const router = useRouter();
+  const retour = useRetour("/compte");
   const [contact, setContact] = useState<ContactService | null>(null);
   const [erreur, setErreur] = useState(false);
 
@@ -76,7 +76,7 @@ export function EcranContact() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={retour}
             aria-label="Retour"
             className="flex h-[31px] w-8 shrink-0 items-center justify-center rounded-[7px]"
             style={{ background: "rgba(255, 255, 255, 0.23)" }}

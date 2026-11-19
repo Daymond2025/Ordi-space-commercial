@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { ChevronLeftIcon, EyeIcon, PlayIcon } from "@/components/icons";
 import type { Pagination, Tutoriel } from "@/lib/types";
+import { useRetour } from "@/lib/navigation";
 
 const COUVERTURE = "/images/couverture_tutoriel_astuce.png";
 
@@ -27,6 +28,7 @@ function couvertureTutoriel(tutoriel: Tutoriel): string {
 export function EcranFormation() {
   const { token, pret } = useAuth();
   const router = useRouter();
+  const retour = useRetour("/compte");
   const [formations, setFormations] = useState<Tutoriel[] | null>(null);
   const [erreur, setErreur] = useState(false);
 
@@ -43,7 +45,7 @@ export function EcranFormation() {
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={() => router.push("/compte")}
+            onClick={retour}
             aria-label="Retour"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
             style={{ background: "rgba(255, 255, 255, 0.23)" }}

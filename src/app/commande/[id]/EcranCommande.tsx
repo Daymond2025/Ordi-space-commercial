@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, apiFetchAvecMeta } from "@/lib/api";
@@ -14,6 +13,7 @@ import { BarreDeSaisie } from "@/components/discussion/BarreDeSaisie";
 import { TimelineSuivi } from "@/components/commande/TimelineSuivi";
 import { FeuilleChangementStatut } from "@/components/commande/FeuilleChangementStatut";
 import type { CommandeDetail, DonneesCommandeCreee, MessageConversation, SuiviEntree } from "@/lib/types";
+import { useRetour } from "@/lib/navigation";
 
 function formaterDateCommande(iso: string): string {
   const date = new Date(iso.replace(" ", "T"));
@@ -35,7 +35,7 @@ function formaterDateCommande(iso: string): string {
  */
 export function EcranCommande({ commandeId }: { commandeId: number }) {
   const { token, user } = useAuth();
-  const router = useRouter();
+  const retour = useRetour("/");
 
   const [commande, setCommande] = useState<CommandeDetail | null>(null);
   const [apercu, setApercu] = useState<DonneesCommandeCreee | null>(null);
@@ -133,7 +133,7 @@ export function EcranCommande({ commandeId }: { commandeId: number }) {
     <div className="flex h-full flex-col">
       <div className="border-b border-brand-line bg-white px-4 py-3">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => router.back()} className="flex h-8 w-8 shrink-0 items-center justify-center text-brand-ink">
+          <button type="button" onClick={retour} aria-label="Retour" className="flex h-8 w-8 shrink-0 items-center justify-center text-brand-ink">
             <ChevronLeftIcon className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
