@@ -97,7 +97,7 @@ export function EcranStatistiques() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-[#f2f5fa]">
-      <div className="bg-gradient-espace shrink-0 rounded-b-[30px] px-4 pb-10 pt-4 text-white">
+      <div className="bg-gradient-espace relative z-10 shrink-0 rounded-b-[30px] px-4 pb-10 pt-4 text-white">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -115,7 +115,10 @@ export function EcranStatistiques() {
         </div>
       </div>
 
-      <div className="-mt-6 px-[26px]">
+      {/* Fond blanc net de la fin du header jusqu'à la ligne sous « Produits
+          les plus vendus » (derrière les coins arrondis du header : fond gris). */}
+      <div className="shrink-0 bg-white">
+      <div className="relative z-20 -mt-6 px-[26px]">
         <div
           className="flex flex-col items-center justify-center rounded-[24px] bg-white p-6 text-center"
           style={{ height: "140px", boxShadow: "0px 12px 12px 12px rgba(29, 99, 224, 0.08)" }}
@@ -148,12 +151,16 @@ export function EcranStatistiques() {
         <CarteStatistique type="compte" couleur="blue" valeur={stats?.produits_distincts_vendus ?? 0} label="Produits distincts" />
       </div>
 
-      <div className="mx-4 mt-5 flex items-center justify-between border-b border-brand-line pb-2 text-sm text-brand-muted">
+      <div className="mt-5 flex items-center justify-between px-4 pb-2 text-sm text-brand-muted">
         <span>Produits les plus vendus</span>
         <span className="font-bold text-brand-ink">{stats?.produits_distincts_vendus ?? 0}</span>
       </div>
+      </div>
 
-      <div className="mx-4 mb-6 rounded-2xl bg-white px-4" style={{ boxShadow: "0px 1px 1px 0px rgba(0, 0, 0, 0.25)" }}>
+      {/* Ligne de séparation sur toute la largeur de l'écran. */}
+      <div className="h-px w-full shrink-0 bg-brand-line" />
+
+      <div className="mx-4 mb-6 mt-4 rounded-2xl bg-white px-4" style={{ boxShadow: "0px 1px 1px 0px rgba(0, 0, 0, 0.25)" }}>
         {chargement ? (
           <p className="py-6 text-center text-sm text-brand-muted">Chargement…</p>
         ) : (stats?.produits_plus_vendus.length ?? 0) === 0 ? (

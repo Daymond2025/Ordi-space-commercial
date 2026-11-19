@@ -99,7 +99,11 @@ export function EcranPaiement() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-[#f2f5fa]">
-      <div className="bg-gradient-espace shrink-0 rounded-b-[30px] px-4 pb-14 pt-5 text-white">
+      {/* Fond blanc net du haut de l'écran jusqu'à la ligne sous les 3 cartes
+          (y compris derrière les coins arrondis du header). */}
+      <div className="shrink-0 bg-white">
+      {/* pb-20 : espace entre le rectangle SOLDES et les 3 cartes. */}
+      <div className="bg-gradient-espace rounded-b-[30px] px-4 pb-20 pt-5 text-white">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-xl font-extrabold">Mes paiements</h1>
           <SelecteurPeriode value={periode} onChange={setPeriode} />
@@ -138,18 +142,19 @@ export function EcranPaiement() {
           que l'accueil (EcranAccueil.tsx). Calculées sur la période affichée
           (contrairement à SOLDES, toujours total) à partir des transactions
           déjà chargées — pas d'appel réseau supplémentaire. */}
-      <div className="relative mx-4 rounded-[21px] bg-white px-3 pb-3" style={{ boxShadow: "0px 1px 1px 0px rgba(0, 0, 0, 0.25)" }}>
-        <div className="relative" style={{ height: "44px" }}>
-          <div className="absolute inset-x-0 flex gap-3" style={{ transform: "translateY(-52px)" }}>
-            <CarteStatistique type="montant" couleur="green" valeur={formaterMontant(totalGagne)} label="Total gagné" />
-            <CarteStatistique type="montant" couleur="rose" valeur={formaterMontant(totalRepris)} label="Total repris" />
-            <CarteStatistique type="compte" couleur="blue" valeur={nombreTransactions} label="Transactions" />
-          </div>
+      <div className="relative mx-4 pb-4" style={{ height: "60px" }}>
+        <div className="absolute inset-x-0 flex gap-3" style={{ transform: "translateY(-52px)" }}>
+          <CarteStatistique type="montant" couleur="green" valeur={formaterMontant(totalGagne)} label="Total gagné" />
+          <CarteStatistique type="montant" couleur="rose" valeur={formaterMontant(totalRepris)} label="Total repris" />
+          <CarteStatistique type="compte" couleur="blue" valeur={nombreTransactions} label="Transactions" />
         </div>
       </div>
+      </div>
 
-      <div className="flex flex-1 flex-col px-4 pt-4">
-        <div className="h-px w-full bg-brand-line" />
+      {/* Ligne de séparation sur toute la largeur de l'écran. */}
+      <div className="h-px w-full shrink-0 bg-brand-line" />
+
+      <div className="flex flex-1 flex-col px-4">
 
         {donnees === null ? (
           <p className="py-10 text-center text-sm text-brand-muted">Chargement…</p>

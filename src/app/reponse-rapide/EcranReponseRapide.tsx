@@ -118,7 +118,9 @@ export function EcranReponseRapide() {
         ) : null}
       </div>
 
-      <div className="px-4 pt-4">
+      {/* Fond blanc net de la fin du header jusqu'à la ligne sous les filtres.
+          z-20 : le menu « Trier » passe au-dessus de la liste. */}
+      <div className="relative z-20 shrink-0 bg-white px-4 py-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-1 gap-2 overflow-x-auto">
             {ONGLETS.map((o) => (
@@ -168,7 +170,12 @@ export function EcranReponseRapide() {
             ) : null}
           </div>
         </div>
+      </div>
 
+      {/* Ligne de séparation sur toute la largeur de l'écran. */}
+      <div className="h-px w-full shrink-0 bg-brand-line" />
+
+      <div className="px-4">
         {reponses === null ? (
           <p className="py-10 text-center text-sm text-brand-muted">Chargement…</p>
         ) : liste.length === 0 ? (

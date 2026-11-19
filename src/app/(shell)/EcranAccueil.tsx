@@ -81,47 +81,51 @@ export function EcranAccueil() {
 
   return (
     <div>
-      <div className="bg-gradient-espace relative rounded-b-[22px] px-4 pb-14 pt-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/compte"
-              aria-label="Voir mon compte"
-              className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border-2 border-white/50 bg-white/20"
-            >
-              {profil?.photo ? (
-                <Image src={profil.photo} alt="" fill className="object-cover" />
-              ) : (
-                <Image src="/images/profil-default.png" alt="" fill className="object-cover" />
-              )}
-            </Link>
-            <div>
-              <p className="text-sm">Bonjour, 👋</p>
-              <p className="text-lg font-extrabold leading-tight">{nomComplet || "…"}</p>
+      {/* Fond blanc net du haut de l'écran jusqu'à la ligne sous « Commandes »
+          (maquette) — y compris derrière les coins arrondis du header. */}
+      <div className="bg-white">
+        {/* pb-20 : espace entre le profil et les 3 cartes, qui remontent sur le header. */}
+        <div className="bg-gradient-espace relative rounded-b-[22px] px-4 pb-20 pt-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link
+                href="/compte"
+                aria-label="Voir mon compte"
+                className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border-2 border-white/50 bg-white/20"
+              >
+                {profil?.photo ? (
+                  <Image src={profil.photo} alt="" fill className="object-cover" />
+                ) : (
+                  <Image src="/images/profil-default.png" alt="" fill className="object-cover" />
+                )}
+              </Link>
+              <div>
+                <p className="text-sm">Bonjour, 👋</p>
+                <p className="text-lg font-extrabold leading-tight">{nomComplet || "…"}</p>
+              </div>
             </div>
+
+            <SelecteurPeriode value={periode} onChange={setPeriode} />
           </div>
-
-          <SelecteurPeriode value={periode} onChange={setPeriode} />
         </div>
-      </div>
 
-      {/* Container blanc qui englobe les 3 cartes stats — même technique que
-          les autres Space : il reste à sa position naturelle juste après le
-          header, seules les cartes remontent dessus (translateY négatif). */}
-      <div className="relative rounded-[21px] bg-white px-3 pb-3" style={{ boxShadow: "0px 1px 1px 0px rgba(0, 0, 0, 0.25)" }}>
-        <div className="relative" style={{ height: "44px" }}>
-          <div className="absolute inset-x-0 flex gap-3" style={{ transform: "translateY(-52px)" }}>
+        {/* Les cartes remontent sur le header (translateY négatif) ; plus de
+            bande blanche séparée derrière elles, tout le bloc est blanc. */}
+        <div className="relative px-3" style={{ height: "44px" }}>
+          <div className="absolute inset-x-3 flex gap-3" style={{ transform: "translateY(-52px)" }}>
             <CarteStatistique type="compte" couleur="orange" valeur={stats?.commandes_total ?? 0} label="Commande total envoyé" />
             <CarteStatistique type="compte" couleur="green" valeur={stats?.commandes_validees ?? 0} label="Commande Total validée" />
             <CarteStatistique type="montant" couleur="blue" valeur={formaterMontant(stats?.commission_totale ?? 0)} label="Commission totale, gagné" />
           </div>
         </div>
+
+        <p className="px-4 pb-2.5 pt-5 text-sm font-bold text-brand-ink">Commandes</p>
       </div>
 
-      <div className="flex flex-col gap-2.5 px-4 pb-6 pt-4">
-        <p className="text-sm font-bold text-brand-ink">Commandes</p>
-        <div className="h-px w-full bg-brand-line" />
+      {/* Ligne de séparation sur toute la largeur de l'écran. */}
+      <div className="h-px w-full bg-brand-line" />
 
+      <div className="flex flex-col gap-2.5 px-4 pb-6 pt-4">
         {produits === null ? (
           <p className="py-6 text-center text-sm text-brand-muted">Chargement…</p>
         ) : produits.length === 0 ? (
