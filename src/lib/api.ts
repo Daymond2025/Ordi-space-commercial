@@ -1,5 +1,12 @@
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
+/**
+ * Émis quand le serveur refuse le jeton (401) : la session a été fermée par
+ * l'Admin (le Commercial n'a pas de bouton de déconnexion) ou a expiré.
+ * AuthContext l'écoute et renvoie vers l'écran de connexion.
+ */
+export const EVENEMENT_SESSION_EXPIREE = "ordispace:session-expiree";
+
 // Sans ça, une requête dont la réponse n'arrive jamais (réseau coupé/instable)
 // laisse l'écran sur "Chargement…" indéfiniment — rien ne rejette la promesse.
 const DELAI_REQUETE_MS = 20_000;
@@ -81,6 +88,10 @@ async function requete(
   }
 
   const json = await response.json().catch(() => null);
+
+  if (response.status === 401 && options.token && typeof window !== "undefined") {
+    window.dispatchEvent(new Event(EVENEMENT_SESSION_EXPIREE));
+  }
 
   if (!response.ok || !json?.success) {
     const error: ApiError = json?.error ?? {

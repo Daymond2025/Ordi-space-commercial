@@ -97,21 +97,25 @@ export function EcranDiscussionProduit({ produitId }: { produitId: number }) {
         telephoneFournisseur={produit?.fournisseur?.user?.telephone ?? null}
       />
 
-      <div className="relative flex-1 overflow-y-auto bg-[#f6f2ed]">
-        <div className="space-y-3 px-3 py-4 pb-20">
-          {chargement ? (
-            <p className="py-10 text-center text-sm text-brand-muted">Chargement…</p>
-          ) : items.length === 0 ? (
-            <p className="py-10 text-center text-sm text-brand-muted">Aucune activité pour l&apos;instant.</p>
-          ) : (
-            items.map((item) =>
-              item.type === "commande" ? (
-                <CarteCommandeDiscussion key={`commande-${item.donnee.commande_id}`} carte={item.donnee} />
-              ) : (
-                <BulleMessage key={`message-${item.donnee.id}`} message={item.donnee} estMoi={item.donnee.auteur_id === user?.id} />
+      {/* Le "+" est posé sur ce conteneur (relative), HORS de la zone qui
+          défile : il reste fixé en bas à droite pendant le défilement. */}
+      <div className="relative min-h-0 flex-1">
+        <div className="h-full overflow-y-auto bg-[#f6f2ed]">
+          <div className="space-y-3 px-3 py-4 pb-20">
+            {chargement ? (
+              <p className="py-10 text-center text-sm text-brand-muted">Chargement…</p>
+            ) : items.length === 0 ? (
+              <p className="py-10 text-center text-sm text-brand-muted">Aucune activité pour l&apos;instant.</p>
+            ) : (
+              items.map((item) =>
+                item.type === "commande" ? (
+                  <CarteCommandeDiscussion key={`commande-${item.donnee.commande_id}`} carte={item.donnee} />
+                ) : (
+                  <BulleMessage key={`message-${item.donnee.id}`} message={item.donnee} estMoi={item.donnee.auteur_id === user?.id} />
+                )
               )
-            )
-          )}
+            )}
+          </div>
         </div>
 
         <button

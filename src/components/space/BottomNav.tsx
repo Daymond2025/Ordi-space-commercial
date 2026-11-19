@@ -7,7 +7,6 @@ const ONGLETS = [
   { href: "/", label: "Space", icone: "/images/space.png" },
   { href: "/catalogue", label: "Catalogue", icone: "/images/catalogue.png" },
   { href: "/paiement", label: "Paiement", icone: "/images/paiement.png" },
-  { href: "/compte", label: "Compte", icone: "/images/compte.png" },
 ] as const;
 
 function Onglet({ href, label, icone, actif }: { href: string; label: string; icone: string; actif: boolean }) {
@@ -39,13 +38,21 @@ function Onglet({ href, label, icone, actif }: { href: string; label: string; ic
 }
 
 /**
- * Nav du bas — 4 icônes PNG fournies (public/images/{space,catalogue,
+ * Nav du bas — 3 onglets (Space, Catalogue, Paiement). L'onglet Compte a
+ * été retiré : le profil s'ouvre depuis l'avatar de l'accueil. Icônes PNG
+ * fournies (public/images/{space,catalogue,
  * paiement,compte}.png), dimensions mockup 402×64 pleine largeur. Pas de
  * bouton central surélevé (absent du mockup, contrairement à l'app
- * Fournisseur) — 4 onglets à poids égal.
+ * Fournisseur) — onglets à poids égal.
  */
+// Discussion produit (/produit/{id}) et Nouvelle commande / récapitulatif
+// (/produit/{id}/nouvelle-commande) : écrans plein écran, sans la nav.
+const SANS_NAV = /^\/produit\/\d+(\/nouvelle-commande)?\/?$/;
+
 export function BottomNav() {
   const pathname = usePathname();
+
+  if (SANS_NAV.test(pathname)) return null;
 
   return (
     <nav

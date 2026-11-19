@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { apiFetch, ApiRequestError } from "@/lib/api";
+import { apiFetch, ApiRequestError, EVENEMENT_SESSION_EXPIREE } from "@/lib/api";
 
 export type Utilisateur = {
   id: number;
@@ -15,24 +15,7 @@ export type Utilisateur = {
 
 type SessionResult = { user: Utilisateur; token: string };
 
-/**
- * Auto-inscription du Commercial humain — aucun champ "métier" en plus des
- * champs d'identité habituels (contrairement au Fournisseur, qui doit
- * donner un nom d'entreprise, ou au Livreur, qui doit fournir des
- * documents) : voir RegisterRequest côté backend, aucune règle required_if
- * pour type_utilisateur=commercial.
- */
-export type DonneesInscription = {
-  nom: string;
-  prenom?: string;
-  email: string;
-  telephone?: string;
-  password: string;
-  password_confirmation: string;
-};
-
 type DemandeOtpResultat = { compteExistant: boolean; userId?: number; codeDebug?: string };
-type InscriptionTelephoneResultat = { userId: number; codeDebug?: string };
 
 type AuthContextValue = {
   user: Utilisateur | null;
@@ -40,12 +23,8 @@ type AuthContextValue = {
   pret: boolean;
   /** @deprecated Conservé pour les comptes déjà créés par e-mail/mot de passe — voir /connexion/email. */
   login: (email: string, password: string) => Promise<void>;
-  /** @deprecated Plus utilisé par aucun écran — les nouvelles inscriptions passent par inscrireParTelephone(). */
-  register: (donnees: DonneesInscription) => Promise<void>;
   demanderOtp: (telephone: string) => Promise<DemandeOtpResultat>;
-  inscrireParTelephone: (telephone: string, nom: string, prenom?: string) => Promise<InscriptionTelephoneResultat>;
   verifierOtpInscription: (userId: number, code: string) => Promise<void>;
-  logout: () => Promise<void>;
 };
 
 const STOCKAGE_CLE = "ordispace.commercial.session";
@@ -92,6 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPret(true);
   }, []);
 
+  // Session fermée côté serveur (déconnexion par l'Admin, compte suspendu…) :
+  // on oublie la session locale, RouteGuard renvoie vers /connexion.
+  useEffect(() => {
+    function oublierSession() {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem(STOCKAGE_CLE);
+    }
+
+    window.addEventListener(EVENEMENT_SESSION_EXPIREE, oublierSession);
+    return () => window.removeEventListener(EVENEMENT_SESSION_EXPIREE, oublierSession);
+  }, []);
+
   function memoriser(session: SessionResult) {
     setUser(session.user);
     setToken(session.token);
@@ -114,40 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   /**
-   * Auto-inscription (POST /auth/register) — voir roles_auto_inscription()
-   * côté backend : le Commercial (comme le Fournisseur et le Livreur,
-   * contrairement au Coordinateur, provisionné par un Administrateur) crée
-   * lui-même son compte. type_utilisateur est fixé côté client, pas un choix
-   * laissé à l'utilisateur de cette app.
+   * Étape 1 de la connexion par téléphone — voir Api\Auth\TelephoneAuthController::demanderOtp().
+   * Pas d'inscription : le compte du Commercial est créé par l'Admin avec son
+   * numéro (entité interne d'Ordi'Space).
    */
-  async function register(donnees: DonneesInscription) {
-    const reponse = await apiFetch<SessionResult>("/auth/register", {
-      method: "POST",
-      body: {
-        nom: donnees.nom,
-        prenom: donnees.prenom || undefined,
-        email: donnees.email,
-        telephone: donnees.telephone || undefined,
-        password: donnees.password,
-        password_confirmation: donnees.password_confirmation,
-        type_utilisateur: "commercial",
-      },
-    });
-
-    accesRefuseSiRoleInvalide(reponse.user);
-    memoriser(reponse);
-  }
-
-  async function logout() {
-    if (token) {
-      await apiFetch("/auth/logout", { method: "POST", token }).catch(() => {});
-    }
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem(STOCKAGE_CLE);
-  }
-
-  /** Étape 1 de la connexion/inscription par téléphone — voir Api\Auth\TelephoneAuthController::demanderOtp(). */
   async function demanderOtp(telephone: string): Promise<DemandeOtpResultat> {
     const reponse = await apiFetch<{ compte_existant: boolean; user_id?: number; code_debug?: string }>(
       "/auth/telephone/otp",
@@ -157,17 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { compteExistant: reponse.compte_existant, userId: reponse.user_id, codeDebug: reponse.code_debug };
   }
 
-  /** Numéro inconnu à l'étape précédente — crée le compte (voir TelephoneAuthController::inscrire()). */
-  async function inscrireParTelephone(telephone: string, nom: string, prenom?: string): Promise<InscriptionTelephoneResultat> {
-    const reponse = await apiFetch<{ user_id: number; code_debug?: string }>("/auth/telephone/inscription", {
-      method: "POST",
-      body: { telephone, nom, prenom, type_utilisateur: "commercial" },
-    });
-
-    return { userId: reponse.user_id, codeDebug: reponse.code_debug };
-  }
-
-  /** Dernière étape, commune aux deux chemins ci-dessus — code reçu par WhatsApp. */
+  /** Dernière étape — code reçu par WhatsApp. */
   async function verifierOtpInscription(userId: number, code: string) {
     const reponse = await apiFetch<SessionResult>("/auth/verify-otp", {
       method: "POST",
@@ -179,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, pret, login, register, demanderOtp, inscrireParTelephone, verifierOtpInscription, logout }}>
+    <AuthContext.Provider value={{ user, token, pret, login, demanderOtp, verifierOtpInscription }}>
       {children}
     </AuthContext.Provider>
   );

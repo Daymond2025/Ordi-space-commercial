@@ -8,13 +8,15 @@ export type ProfilUtilisateur = {
   id: number;
   nom: string;
   prenom: string | null;
-  email: string;
+  email: string | null;
   telephone: string | null;
   photo: string | null;
   type_utilisateur: string;
   created_at: string;
   nom_entreprise?: string | null;
   localisation?: string | null;
+  /** Fixé par l'Admin : interne (salarié) ou indépendant (recruté). */
+  categorie_commercial?: "interne" | "independant" | null;
 };
 
 export type PeriodeEspace = "aujourd_hui" | "semaine" | "semaine_derniere" | "mois" | "tout";
@@ -150,7 +152,7 @@ export type Pagination<T> = {
  * l'identique côté Commercial ("Formation" du Compte) : lecture publique à
  * tout rôle connecté, aucune branche dédiée ROLE_COMMERCIAL ni nouveau champ.
  */
-export type TypeTutoriel = "tutoriel_rapide" | "formation";
+export type TypeTutoriel = "tutoriel_rapide" | "formation" | "formation_vente";
 
 export type Tutoriel = {
   id: number;

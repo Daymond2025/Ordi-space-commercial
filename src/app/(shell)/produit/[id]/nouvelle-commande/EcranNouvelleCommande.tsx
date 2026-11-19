@@ -4,19 +4,41 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch, messageErreurApi } from "@/lib/api";
+import { apiFetch, ApiRequestError, messageErreurApi } from "@/lib/api";
 import { ChevronLeftIcon, MonitorIcon } from "@/components/icons";
 import { CarteEnTeteNoir } from "@/components/commande/CarteEnTeteNoir";
 import { DetailCommande } from "@/components/discussion/DetailCommande";
-import type { DonneesCommandeCreee, ExtractionTexte, Localite, ProduitChoix } from "@/lib/types";
+import { formaterMontant, type DonneesCommandeCreee, type ExtractionTexte, type Localite, type ProduitChoix } from "@/lib/types";
+
+const CHAMP = "w-full rounded-full bg-white px-4 py-2.5 text-sm text-brand-ink outline-none placeholder:text-brand-muted";
+const CHAMP_RECAP = "w-full rounded-xl border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink outline-none placeholder:text-brand-muted";
+
+/** "AAAA-MM-JJ" / "HH:MM" locaux (inputs date/time), jamais en UTC. */
+function aujourdhuiLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function libelleLocalite(l: Localite): string {
+  return l.type === "commune_abidjan" ? `Abidjan, ${l.nom}` : l.nom;
+}
+
+function estPassee(date: Date): boolean {
+  return date.getTime() <= Date.now();
+}
+
+function formaterDateHeure(date: Date): string {
+  return date.toLocaleString("fr-FR", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" });
+}
 
 /**
- * "Nouvelle commande" — copié de Cordinateur_App_Web/src/app/produit/[id]/
- * nouvelle-commande/EcranNouvelleCommande.tsx (même écran d'origine, demande
- * explicite "même processus d'ajout d'une nouvelle commande"). Atteint
- * depuis le "+" de la discussion produit (EcranDiscussionProduit.tsx) : le
- * produit est déjà connu (id dans l'URL), plus besoin du sélecteur de
- * l'ancienne version générique de cette app (remplacée par cet écran).
+ * "Nouvelle commande" — atteint depuis le "+" de la discussion produit.
+ * Le commercial saisit le client, le lieu (localité + précision libre) et
+ * la date de livraison : immédiate, ou programmée à une date et une heure —
+ * la commande n'est alors transmise à la coordination qu'une heure avant
+ * (CommandeController::resoudreDateTransmission()). Au récapitulatif, il
+ * peut encore corriger le lieu et les frais de livraison proposés par le
+ * barème (frais_livraison accepté pour le rôle commercial côté backend).
  */
 export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
   const { token } = useAuth();
@@ -28,16 +50,23 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
 
   const [texteLivraison, setTexteLivraison] = useState("");
   const [notes, setNotes] = useState("");
-  const [extraction, setExtraction] = useState<ExtractionTexte | null>(null);
   const [nom, setNom] = useState("");
   const [telephone, setTelephone] = useState("");
   const [localiteId, setLocaliteId] = useState<number | null>(null);
+  const [precisionLieu, setPrecisionLieu] = useState("");
+
+  const [modeLivraison, setModeLivraison] = useState<"immediate" | "programmee">("immediate");
+  const [dateLivraison, setDateLivraison] = useState("");
+  const [heureLivraison, setHeureLivraison] = useState("");
 
   const [collageEnCours, setCollageEnCours] = useState(false);
   const [erreurCollage, setErreurCollage] = useState<string | null>(null);
-  const [fraisLivraison, setFraisLivraison] = useState<number | null>(null);
-  const [chargementRecap, setChargementRecap] = useState(false);
-  const [erreurRecap, setErreurRecap] = useState<string | null>(null);
+  /** Frais proposés par le barème pour la localité choisie (null = aucun tarif prévu). */
+  const [fraisBareme, setFraisBareme] = useState<number | null>(null);
+  /** Frais retenus — modifiables par le commercial au récapitulatif. */
+  const [fraisSaisis, setFraisSaisis] = useState("");
+  const [chargementFrais, setChargementFrais] = useState(false);
+  const [erreurSaisie, setErreurSaisie] = useState<string | null>(null);
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
   const [erreurEnvoi, setErreurEnvoi] = useState<string | null>(null);
 
@@ -73,9 +102,8 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
       setTexteLivraison(texte);
 
       const resultat = await apiFetch<ExtractionTexte>("/clients/extraction", { method: "POST", token, body: { texte } });
-      setExtraction(resultat);
-      setNom(resultat.nom ?? "");
-      setTelephone(resultat.telephone ?? "");
+      if (resultat.nom) setNom(resultat.nom);
+      if (resultat.telephone) setTelephone(resultat.telephone);
 
       if (resultat.ville && localites) {
         const suggestion = localites.find((l) => l.nom.toLowerCase().includes(resultat.ville!.toLowerCase()));
@@ -83,34 +111,67 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
       }
     } catch {
       setErreurCollage("Impossible de lire le presse-papiers ou d'analyser le texte — remplis les champs manuellement.");
-      setExtraction({ nom: null, telephone: null, ville: null });
     } finally {
       setCollageEnCours(false);
     }
   }
 
-  async function voirRecapitulatif() {
-    if (!token || !produit || !localiteId) return;
-
-    setErreurRecap(null);
-    setChargementRecap(true);
-
+  /** Tarif du barème pour une localité ; sans tarif prévu, le commercial saisit lui-même les frais. */
+  async function chargerFrais(idLocalite: number) {
+    if (!token) return;
+    setChargementFrais(true);
     try {
-      const resultat = await apiFetch<{ frais_livraison: number }>(
-        `/produits/${produitId}/frais-livraison?localite_id=${localiteId}`,
-        { token }
-      );
-      setFraisLivraison(resultat.frais_livraison);
-      setEtape("recapitulatif");
+      const resultat = await apiFetch<{ frais_livraison: number }>(`/produits/${produitId}/frais-livraison?localite_id=${idLocalite}`, { token });
+      setFraisBareme(resultat.frais_livraison);
+      setFraisSaisis(String(Math.round(resultat.frais_livraison)));
     } catch (e) {
-      setErreurRecap(messageErreurApi(e));
+      if (e instanceof ApiRequestError && e.status === 422) {
+        setFraisBareme(null);
+        setFraisSaisis("");
+      } else {
+        throw e;
+      }
     } finally {
-      setChargementRecap(false);
+      setChargementFrais(false);
     }
   }
 
+  const dateProgrammee = modeLivraison === "programmee" && dateLivraison && heureLivraison ? new Date(`${dateLivraison}T${heureLivraison}`) : null;
+  // Date passée : vérifiée au clic (voirRecapitulatif), et de nouveau par le backend.
+  const programmationInvalide = modeLivraison === "programmee" && (!dateProgrammee || Number.isNaN(dateProgrammee.getTime()));
+
+  async function voirRecapitulatif() {
+    if (!token || !produit || !localiteId) return;
+
+    if (programmationInvalide || (dateProgrammee && estPassee(dateProgrammee))) {
+      setErreurSaisie("Choisis une date et une heure de livraison à venir.");
+      return;
+    }
+
+    setErreurSaisie(null);
+    try {
+      await chargerFrais(localiteId);
+      setEtape("recapitulatif");
+    } catch (e) {
+      setErreurSaisie(messageErreurApi(e));
+    }
+  }
+
+  async function changerLocaliteRecap(id: number | null) {
+    setLocaliteId(id);
+    if (id === null) return;
+    try {
+      await chargerFrais(id);
+    } catch (e) {
+      setErreurEnvoi(messageErreurApi(e));
+    }
+  }
+
+  const fraisRetenus = fraisSaisis.trim() === "" ? null : Number(fraisSaisis);
+  const fraisValides = fraisRetenus !== null && Number.isFinite(fraisRetenus) && fraisRetenus >= 0;
+
   async function envoyer() {
-    if (!token || !produit || fraisLivraison === null || !localiteId) return;
+    if (!token || !produit || !localiteId || !fraisValides) return;
 
     setErreurEnvoi(null);
     setEnvoiEnCours(true);
@@ -125,7 +186,7 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
       const adresse = await apiFetch<{ id: number }>(`/clients/${client.id}/adresses`, {
         method: "POST",
         token,
-        body: { localite_id: localiteId },
+        body: { localite_id: localiteId, precision: precisionLieu.trim() || undefined },
       });
 
       await apiFetch("/commandes", {
@@ -135,12 +196,15 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
           client_id: client.id,
           adresse_id: adresse.id,
           lignes: [{ produit_id: produitId, quantite: 1 }],
+          frais_livraison: fraisRetenus,
+          // ISO (UTC) : le backend la convertit, et transmet la commande une heure avant.
+          date_livraison_prevue: dateProgrammee ? dateProgrammee.toISOString() : undefined,
           notes: notes || undefined,
         },
       });
 
       // Retour à la discussion produit, où la nouvelle commande apparaît
-      // tout de suite comme carte système — même logique que Coordinateur.
+      // tout de suite comme carte système.
       router.push(`/produit/${produitId}`);
     } catch (e) {
       setErreurEnvoi(messageErreurApi(e));
@@ -151,29 +215,39 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
 
   const localiteChoisie = localites?.find((l) => l.id === localiteId) ?? null;
   const zoneLivraison = localiteChoisie
-    ? `${localiteChoisie.type === "commune_abidjan" ? "Abidjan" : localiteChoisie.nom}, ${localiteChoisie.nom}`
+    ? `${localiteChoisie.type === "commune_abidjan" ? "Abidjan" : localiteChoisie.nom}, ${localiteChoisie.nom}${precisionLieu.trim() ? ` — ${precisionLieu.trim()}` : ""}`
     : null;
 
-  const apercu: DonneesCommandeCreee | null =
-    produit && fraisLivraison !== null
-      ? {
-          nom_produit: produit.nom_produit,
-          photo: produit.images[0]?.url_image ?? null,
-          // Number(...) : le cast decimal:2 de Laravel sérialise les prix en
-          // chaîne ("350000.00"), sinon `+` ferait une concaténation.
-          prix_produit: Number(produit.prix_vente ?? produit.prix),
-          nom_client: nom,
-          telephone,
-          zone_livraison: zoneLivraison,
-          date_livraison_prevue: null,
-          frais_livraison: fraisLivraison,
-          remise: 0,
-          total: Number(produit.prix_vente ?? produit.prix) + fraisLivraison,
-          bonus_offerts: null,
-        }
-      : null;
+  // Number(...) : le cast decimal:2 de Laravel sérialise les prix en chaîne ("350000.00").
+  const prixProduit = produit ? Number(produit.prix_vente ?? produit.prix) : 0;
+  const apercu: DonneesCommandeCreee | null = produit
+    ? {
+        nom_produit: produit.nom_produit,
+        photo: produit.images[0]?.url_image ?? null,
+        prix_produit: prixProduit,
+        nom_client: nom,
+        telephone,
+        zone_livraison: zoneLivraison,
+        date_livraison_prevue: dateProgrammee ? dateProgrammee.toISOString() : null,
+        frais_livraison: fraisValides ? fraisRetenus : 0,
+        remise: 0,
+        total: prixProduit + (fraisValides ? fraisRetenus : 0),
+        bonus_offerts: null,
+      }
+    : null;
 
   const degradeStyle = { background: "linear-gradient(90deg, #0077FF 0%, #00BFFF 100%)", boxShadow: "0px 12px 12px 12px rgba(0, 119, 255, 0.08)" };
+
+  const selecteurLocalite = (classe: string, onChange: (id: number | null) => void) => (
+    <select value={localiteId ?? ""} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)} className={classe}>
+      <option value="">Choisir la localité de livraison</option>
+      {localites?.map((l) => (
+        <option key={l.id} value={l.id}>
+          {libelleLocalite(l)}
+        </option>
+      ))}
+    </select>
+  );
 
   if (etape === "saisie") {
     return (
@@ -217,7 +291,7 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
               <textarea
                 value={texteLivraison}
                 onChange={(e) => setTexteLivraison(e.target.value)}
-                placeholder="Coller ici les informations de livraison, le nom, le lieu de livraison, le numéro de téléphone et la date de livraison"
+                placeholder="Coller ici les informations de livraison, le nom, le lieu de livraison et le numéro de téléphone"
                 rows={4}
                 className="w-full rounded-2xl border border-brand-line px-3.5 py-3 text-sm text-brand-ink outline-none placeholder:text-brand-muted"
               />
@@ -233,35 +307,72 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
               {erreurCollage ? <p className="mt-2 text-xs text-rose-500">{erreurCollage}</p> : null}
             </div>
 
-            {extraction ? (
-              <div className="space-y-3 rounded-2xl bg-[#F5F7FA] p-3.5">
-                <p className="text-xs font-bold text-brand-muted">Informations extraites, corrige si besoin</p>
-                <input
-                  value={nom}
-                  onChange={(e) => setNom(e.target.value)}
-                  placeholder="Nom du client"
-                  className="w-full rounded-full bg-white px-4 py-2.5 text-sm text-brand-ink outline-none placeholder:text-brand-muted"
-                />
-                <input
-                  value={telephone}
-                  onChange={(e) => setTelephone(e.target.value)}
-                  placeholder="Numéro de téléphone"
-                  className="w-full rounded-full bg-white px-4 py-2.5 text-sm text-brand-ink outline-none placeholder:text-brand-muted"
-                />
-                <select
-                  value={localiteId ?? ""}
-                  onChange={(e) => setLocaliteId(e.target.value ? Number(e.target.value) : null)}
-                  className="w-full rounded-full bg-white px-4 py-2.5 text-sm text-brand-ink outline-none"
-                >
-                  <option value="">Choisir la localité de livraison</option>
-                  {localites?.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.type === "commune_abidjan" ? `Abidjan, ${l.nom}` : l.nom}
-                    </option>
-                  ))}
-                </select>
+            <div className="space-y-3 rounded-2xl bg-[#F5F7FA] p-3.5">
+              <p className="text-xs font-bold text-brand-muted">Client et lieu de livraison</p>
+              <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom du client" className={CHAMP} />
+              <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Numéro de téléphone" className={CHAMP} />
+              {selecteurLocalite(CHAMP, setLocaliteId)}
+              <input
+                value={precisionLieu}
+                onChange={(e) => setPrecisionLieu(e.target.value)}
+                placeholder="Précision du lieu (quartier, repère…) — optionnel"
+                maxLength={255}
+                className={CHAMP}
+              />
+            </div>
+
+            <div className="space-y-3 rounded-2xl bg-[#F5F7FA] p-3.5">
+              <p className="text-xs font-bold text-brand-muted">Date de livraison</p>
+              <div className="flex h-11 rounded-full bg-white p-1">
+                {(
+                  [
+                    ["immediate", "Immédiate"],
+                    ["programmee", "Choisir une date"],
+                  ] as const
+                ).map(([valeur, libelle]) => (
+                  <button
+                    key={valeur}
+                    type="button"
+                    onClick={() => setModeLivraison(valeur)}
+                    aria-pressed={modeLivraison === valeur}
+                    className={`flex-1 rounded-full text-sm font-semibold transition-colors ${
+                      modeLivraison === valeur ? "bg-gradient-espace text-white" : "text-brand-muted"
+                    }`}
+                  >
+                    {libelle}
+                  </button>
+                ))}
               </div>
-            ) : null}
+
+              {modeLivraison === "programmee" ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={dateLivraison}
+                      min={aujourdhuiLocal()}
+                      onChange={(e) => setDateLivraison(e.target.value)}
+                      aria-label="Date de livraison"
+                      className={CHAMP}
+                    />
+                    <input
+                      type="time"
+                      value={heureLivraison}
+                      onChange={(e) => setHeureLivraison(e.target.value)}
+                      aria-label="Heure de livraison"
+                      className={CHAMP}
+                    />
+                  </div>
+                  <p className="text-xs text-brand-muted">
+                    {dateProgrammee && !programmationInvalide
+                      ? `La commande sera transmise à la coordination le ${formaterDateHeure(new Date(dateProgrammee.getTime() - 3600_000))}, une heure avant la livraison.`
+                      : "La commande sera transmise à la coordination une heure avant la date choisie."}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-brand-muted">La commande est transmise tout de suite à la coordination.</p>
+              )}
+            </div>
 
             <div>
               <p className="mb-2 text-center text-sm font-bold text-brand-muted">Informations complémentaires</p>
@@ -274,16 +385,16 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
               />
             </div>
 
-            {erreurRecap ? <p className="text-center text-xs text-rose-500">{erreurRecap}</p> : null}
+            {erreurSaisie ? <p className="text-center text-xs text-rose-500">{erreurSaisie}</p> : null}
 
             <button
               type="button"
               onClick={voirRecapitulatif}
-              disabled={!nom.trim() || !telephone.trim() || !localiteId || chargementRecap}
+              disabled={!nom.trim() || !telephone.trim() || !localiteId || chargementFrais || programmationInvalide}
               style={degradeStyle}
               className="h-12 w-full rounded-[11px] text-sm font-bold text-white disabled:opacity-50"
             >
-              {chargementRecap ? "Vérification…" : "Vois le récapitulatif"}
+              {chargementFrais ? "Vérification…" : "Vois le récapitulatif"}
             </button>
           </div>
         </div>
@@ -311,6 +422,43 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
             </CarteEnTeteNoir>
           </div>
 
+          <div className="mt-4 space-y-3 rounded-[24px] bg-white p-4 shadow-sm shadow-slate-900/10">
+            <p className="text-sm font-bold text-brand-ink">Livraison</p>
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-medium text-brand-muted">Lieu de livraison</span>
+              {selecteurLocalite(CHAMP_RECAP, changerLocaliteRecap)}
+            </label>
+            <input
+              value={precisionLieu}
+              onChange={(e) => setPrecisionLieu(e.target.value)}
+              placeholder="Précision du lieu (quartier, repère…)"
+              maxLength={255}
+              aria-label="Précision du lieu"
+              className={CHAMP_RECAP}
+            />
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-medium text-brand-muted">Frais de livraison (CFA)</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={fraisSaisis}
+                onChange={(e) => setFraisSaisis(e.target.value)}
+                placeholder="Saisir les frais"
+                className={CHAMP_RECAP}
+              />
+            </label>
+            <p className={`text-xs ${fraisBareme === null && !chargementFrais ? "text-orange-600" : "text-brand-muted"}`}>
+              {chargementFrais
+                ? "Calcul des frais…"
+                : fraisBareme === null
+                  ? "Aucun tarif prévu pour cette localité — saisis les frais de livraison."
+                  : `Tarif prévu : ${formaterMontant(fraisBareme)}. Tu peux le modifier.`}
+            </p>
+          </div>
+
           {erreurEnvoi ? <p className="mt-3 text-center text-xs text-rose-500">{erreurEnvoi}</p> : null}
 
           <div className="mt-4 flex gap-3">
@@ -329,11 +477,11 @@ export function EcranNouvelleCommande({ produitId }: { produitId: number }) {
             <button
               type="button"
               onClick={envoyer}
-              disabled={envoiEnCours}
+              disabled={envoiEnCours || !localiteId || !fraisValides || chargementFrais}
               style={degradeStyle}
               className="h-12 flex-[216] rounded-[11px] text-sm font-bold text-white disabled:opacity-50"
             >
-              {envoiEnCours ? "Envoi…" : "Envoyer"}
+              {envoiEnCours ? "Envoi…" : dateProgrammee ? "Programmer" : "Envoyer"}
             </button>
           </div>
         </div>

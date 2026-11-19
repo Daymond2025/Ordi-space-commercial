@@ -14,8 +14,8 @@ function formaterDateLivraison(iso: string | null): string {
 
 function LigneDetail({ label, value, isTel }: { label: string; value: string; isTel?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="flex min-w-0 items-center gap-1.5 text-xs text-brand-muted">
+    <div className="flex items-start justify-between gap-3">
+      <span className="flex shrink-0 items-center gap-1.5 pt-0.5 text-xs text-brand-muted">
         <UserIcon className="h-3.5 w-3.5 shrink-0" style={{ color: "rgba(112, 112, 112, 1)" }} />
         {label}
       </span>
@@ -24,7 +24,7 @@ function LigneDetail({ label, value, isTel }: { label: string; value: string; is
           {value}
         </a>
       ) : (
-        <span className="shrink-0 text-sm font-bold text-brand-ink">{value}</span>
+        <span className="min-w-0 break-words text-right text-sm font-bold text-brand-ink">{value}</span>
       )}
     </div>
   );
@@ -89,8 +89,9 @@ export function DetailCommande({ donnees }: { donnees: DonneesCommandeCreee }) {
         <div className="space-y-2">
           <LignePrix label="Prix du produit" value={donnees.prix_produit} />
           <LignePrix label="Frais de livraison" value={donnees.frais_livraison} />
-          <LignePrix label="TVA" value={0} />
-          <LignePrix label="Remise" value={donnees.remise} negatif={donnees.remise > 0} />
+          {/* Pas de ligne TVA ; la remise n'apparaît que si la commande en a une
+              (jamais sur une commande saisie par un commercial). */}
+          {donnees.remise > 0 ? <LignePrix label="Remise" value={donnees.remise} negatif /> : null}
         </div>
         <div className="mx-auto my-2" style={{ height: "1px", width: "91%", backgroundColor: "rgba(226, 232, 240, 1)" }} />
         <div className="flex items-center justify-between">

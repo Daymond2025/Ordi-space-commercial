@@ -8,10 +8,8 @@ import { BottomNav } from "@/components/space/BottomNav";
 // ce qui empêchait la barre de saisie de la discussion produit de rester
 // ancrée juste au-dessus de la nav. Ne change rien sur les écrans qui
 // tiennent déjà dans l'écran (accueil...), les rend juste correctement
-// défilants indépendamment de la nav. Aucun écran ne masque encore la nav
-// ici (pas de "détail produit" plein écran construit pour ce rôle) — à
-// ajouter via une regex sur `pathname` (usePathname + masquerNav) le jour
-// où un tel écran arrive, comme Ordi'Space_Fournisseur_App/src/app/(shell)/layout.tsx.
+// défilants indépendamment de la nav. La nav est masquée sur la discussion
+// produit et la création de commande (voir BottomNav).
 export default function ShellLayout({ children }: { children: ReactNode }) {
   return (
     <RouteGuard>

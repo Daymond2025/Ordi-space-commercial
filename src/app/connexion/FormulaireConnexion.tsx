@@ -10,11 +10,11 @@ import { ChampAuth } from "@/components/auth/ChampAuth";
 import { BoutonAuthCompact } from "@/components/auth/BoutonAuthCompact";
 
 /**
- * Connexion par numéro + OTP WhatsApp — uniformisation de l'auth, même
- * mécanisme que le Client (voir Ordi’Space_App_Mobile/src/app/connexion).
+ * Connexion par numéro + OTP WhatsApp. Pas d'inscription : le Commercial est
+ * une entité interne d'Ordi'Space, son compte est créé par l'Admin avec son
+ * numéro — un numéro inconnu affiche donc un message, sans créer de compte.
  * Les comptes déjà créés par e-mail/mot de passe restent joignables via le
- * lien "Se connecter avec e-mail" ci-dessous (/connexion/email, ancien
- * EcranConnexion inchangé) — aucune migration forcée.
+ * lien "Se connecter avec e-mail" ci-dessous (/connexion/email).
  */
 export function FormulaireConnexion() {
   const { user, pret, demanderOtp } = useAuth();
@@ -47,7 +47,7 @@ export function FormulaireConnexion() {
         if (resultat.codeDebug) params.set("code_debug", resultat.codeDebug);
         router.push(`/connexion/verification?${params.toString()}`);
       } else {
-        router.push(`/inscription?${params.toString()}`);
+        setErreur("Aucun compte commercial n'est associé à ce numéro. Contacte l'administration Ordi'Space pour qu'elle crée ton compte.");
       }
     } catch (e) {
       setErreur(e instanceof ApiRequestError ? e.message : "Impossible de se connecter. Vérifiez votre connexion internet.");

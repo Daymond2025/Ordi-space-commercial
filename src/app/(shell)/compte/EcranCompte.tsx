@@ -11,7 +11,6 @@ import {
   ChatIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  DeconnexionIcon,
   GraduationCapIcon,
   HeadsetIcon,
   PhoneFilledIcon,
@@ -59,11 +58,12 @@ function LigneInfo({ icone, iconeClasse, label, valeur }: { icone: ReactNode; ic
 }
 
 /** "Confidentialité et UGC"/"Contactez le service" — pas encore branchées (aucune page cible construite), même convention que les autres apps (Ordi'Space_Fournisseur_App/.../EcranProfil.tsx). */
-function LigneMenu({ icone, iconeClasse, label }: { icone: ReactNode; iconeClasse: string; label: string }) {
+function LigneMenu({ icone, iconeClasse, label, onClick }: { icone: ReactNode; iconeClasse: string; label: string; onClick?: () => void }) {
   return (
     <button
       type="button"
-      aria-label={`${label} (à venir)`}
+      onClick={onClick}
+      aria-label={onClick ? label : `${label} (à venir)`}
       className="flex w-full items-center gap-3 border-b border-brand-line px-4 py-3.5 text-left last:border-b-0"
     >
       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconeClasse}`}>{icone}</span>
@@ -86,7 +86,7 @@ function LigneMenu({ icone, iconeClasse, label }: { icone: ReactNode; iconeClass
  * ROLE_COMMERCIAL de MoiController::profil().
  */
 export function EcranCompte() {
-  const { token, logout } = useAuth();
+  const { token } = useAuth();
   const router = useRouter();
   const [profil, setProfil] = useState<ProfilUtilisateur | null>(null);
   const [stats, setStats] = useState<StatistiquesCommercial | null>(null);
@@ -196,7 +196,9 @@ export function EcranCompte() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-lg font-extrabold text-brand-ink">{nomComplet}</p>
-              <p className="text-sm text-brand-muted">Commercial</p>
+              <p className="text-sm text-brand-muted">
+                {profil?.categorie_commercial === "independant" ? "Commercial indépendant" : profil?.categorie_commercial === "interne" ? "Commercial interne" : "Commercial"}
+              </p>
               {profil ? <p className="mt-0.5 text-xs text-brand-muted">Membre depuis: {formaterAnciennete(profil.created_at)}</p> : null}
             </div>
           </div>
@@ -278,17 +280,11 @@ export function EcranCompte() {
 
         <div className="mt-4 rounded-[22px] bg-white" style={CARTE_OMBRE}>
           <LigneMenu icone={<ShieldIcon className="h-4.5 w-4.5" />} iconeClasse="bg-indigo-50 text-indigo-500" label="Confidentialité et UGC" />
-          <LigneMenu icone={<HeadsetIcon className="h-4.5 w-4.5" />} iconeClasse="bg-amber-50 text-amber-500" label="Contactez le service" />
+          <LigneMenu icone={<HeadsetIcon className="h-4.5 w-4.5" />} iconeClasse="bg-amber-50 text-amber-500" label="Contactez le service" onClick={() => router.push("/contact")} />
         </div>
 
-        <button
-          type="button"
-          onClick={() => logout()}
-          className="mb-6 mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-xs font-extrabold uppercase tracking-wide text-white"
-        >
-          <DeconnexionIcon className="h-4 w-4" />
-          Se déconnecter
-        </button>
+        {/* Pas de bouton « Se déconnecter » : seul l'Admin peut déconnecter un commercial. */}
+        <div className="h-6" />
       </div>
     </div>
   );
