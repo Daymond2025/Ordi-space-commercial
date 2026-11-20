@@ -537,3 +537,26 @@ export function DossierTelechargementIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** Panier (barre de recherche du Catalogue) — même tracé que l'app client. */
+export function PanierIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M2.5 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 7H6" />
+      <circle cx="9.5" cy="20" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="17.5" cy="20" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Filtre « Tout » du Catalogue — même tracé que l'app client. */
+export function GridIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}

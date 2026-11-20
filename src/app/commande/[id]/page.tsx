@@ -6,7 +6,7 @@ export default async function CommandePage({ params }: PageProps<"/commande/[id]
 
   return (
     <RouteGuard>
-      <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col bg-white md:my-6 md:min-h-[calc(100dvh-3rem)] md:max-h-[calc(100dvh-3rem)] md:overflow-hidden md:rounded-[2rem] md:shadow-2xl md:shadow-slate-900/15 md:ring-1 md:ring-black/5">
+      <div className="mx-auto flex h-dvh w-full max-w-xl flex-col overflow-hidden bg-white md:my-6 md:h-[calc(100dvh-3rem)] md:rounded-[2rem] md:shadow-2xl md:shadow-slate-900/15 md:ring-1 md:ring-black/5">
         <EcranCommande commandeId={Number(id)} />
       </div>
     </RouteGuard>

@@ -7,12 +7,14 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { formaterPrix, type Pagination, type Produit } from "@/lib/types";
 import { ImageProduitCard } from "@/components/ImageProduitCard";
+import { EngrenageIcon, GridIcon, HeadsetIcon, MonitorIcon, PanierIcon, SearchIcon } from "@/components/icons";
+import Link from "next/link";
 
 const CATEGORIES = [
-  { id: "tout", label: "Tout", categorieId: null },
-  { id: "ordinateurs", label: "Ordinateurs", categorieId: 1 },
-  { id: "accessoires", label: "Accessoires", categorieId: 2 },
-  { id: "logiciels", label: "Logiciels", categorieId: 3 },
+  { id: "tout", label: "Tout", categorieId: null, icone: GridIcon },
+  { id: "ordinateurs", label: "Ordinateurs", categorieId: 1, icone: MonitorIcon },
+  { id: "accessoires", label: "Accessoires", categorieId: 2, icone: HeadsetIcon },
+  { id: "logiciels", label: "Logiciels", categorieId: 3, icone: EngrenageIcon },
 ] as const;
 
 /**
@@ -66,8 +68,16 @@ function CatalogueContenu() {
 
   const [categorie, setCategorie] = useState<(typeof CATEGORIES)[number]["id"]>(categorieInitiale);
   const [produits, setProduits] = useState<Produit[] | null>(null);
+  const [recherche, setRecherche] = useState("");
 
   const categorieActive = useMemo(() => CATEGORIES.find((c) => c.id === categorie), [categorie]);
+
+  const produitsFiltres = useMemo(() => {
+    if (!produits) return null;
+    const terme = recherche.trim().toLowerCase();
+    if (!terme) return produits;
+    return produits.filter((p) => p.nom_produit.toLowerCase().includes(terme));
+  }, [produits, recherche]);
 
   useEffect(() => {
     if (!token) return;
@@ -92,36 +102,56 @@ function CatalogueContenu() {
         <div className="w-full" style={STYLE_BACHE} />
       </div>
 
-      {/* Remonte sous les festons : la bâche est posée sur le rectangle Market'Space. */}
-      <section style={{ marginTop: `-${(100 * BACHE.festons) / BACHE.l}%` }} className="bg-gradient-espace relative mx-3 overflow-hidden rounded-[15px] px-5 pb-6 pt-5 text-white">
-        <div className="relative flex h-16 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900">
-          <h1 className="text-center text-lg font-bold">Market&apos;Space</h1>
-        </div>
-
-        <div className="mt-4 flex justify-between gap-1">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setCategorie(cat.id)}
-              style={{ width: 83, height: 28, borderWidth: 3, borderRadius: 14 }}
-              className={`flex shrink-0 items-center justify-center border text-[11px] font-semibold transition-colors ${
-                categorie === cat.id ? "border-white bg-white text-[color:var(--brand-blue-end)]" : "border-white/30 bg-white/10 text-white"
-              }`}
+      {/* Recherche + panier et filtres — même section que le Market'Space
+          de l'app client (Ordi’Space_App_Mobile/src/app/(shell)/market-space/
+          page.tsx), remontée sous les festons : la bâche est posée dessus. */}
+      <section style={{ marginTop: `-${(100 * BACHE.festons) / BACHE.l}%` }} className="relative px-2">
+        <div className="rounded-[22px] p-2.5" style={{ background: "linear-gradient(135deg, #EAF3FF 0%, #DCEBFF 100%)" }}>
+          {/* Recherche et panier fondus en une seule pilule blanche. */}
+          <div className="flex h-11 items-center gap-2 rounded-full bg-white py-1 pl-4 pr-1 shadow-sm shadow-slate-900/5">
+            <SearchIcon className="h-4.5 w-4.5 shrink-0 text-brand-muted" />
+            <input
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              placeholder="Rechercher un produit..."
+              className="w-full min-w-0 bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-muted"
+            />
+            {/* Pas de panier côté Commercial : le bouton ouvre ses commandes (Space). */}
+            <Link
+              href="/"
+              aria-label="Mes commandes"
+              className="bg-gradient-brand-blue flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
             >
-              {cat.label}
-            </button>
-          ))}
+              <PanierIcon className="h-4.5 w-4.5" />
+            </Link>
+          </div>
+
+          {/* -mx-2.5/px-2.5 : toute la largeur pour que les 4 filtres tiennent. */}
+          <div className="-mx-2.5 mt-3 flex items-center justify-between gap-1 overflow-x-auto px-2.5">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setCategorie(cat.id)}
+                className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-semibold transition-colors ${
+                  categorie === cat.id ? "bg-gradient-brand-blue text-white shadow-sm" : "bg-white text-brand-ink shadow-sm shadow-slate-900/5"
+                }`}
+              >
+                <cat.icone className={`h-3.5 w-3.5 shrink-0 ${categorie === cat.id ? "text-white" : "text-[color:var(--brand-blue-end)]"}`} />
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="mt-4 grid grid-cols-2 gap-3 px-4">
-        {produits === null ? (
+        {produitsFiltres === null ? (
           <p className="col-span-2 text-center text-sm text-brand-muted">Chargement…</p>
-        ) : produits.length === 0 ? (
+        ) : produitsFiltres.length === 0 ? (
           <p className="col-span-2 text-center text-sm text-brand-muted">Aucun produit dans cette catégorie.</p>
         ) : (
-          produits.map((produit) => (
+          produitsFiltres.map((produit) => (
             <button
               key={produit.id}
               type="button"

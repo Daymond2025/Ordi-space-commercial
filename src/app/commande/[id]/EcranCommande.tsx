@@ -10,6 +10,7 @@ import { ChevronLeftIcon, ChevronDownIcon, FlagIcon, MonitorIcon, ShareIcon } fr
 import { DetailCommande } from "@/components/discussion/DetailCommande";
 import { BulleMessage } from "@/components/discussion/BulleMessage";
 import { BarreDeSaisie } from "@/components/discussion/BarreDeSaisie";
+import { useDefilementBas } from "@/lib/defilement";
 import { TimelineSuivi } from "@/components/commande/TimelineSuivi";
 import { FeuilleChangementStatut } from "@/components/commande/FeuilleChangementStatut";
 import type { CommandeDetail, DonneesCommandeCreee, MessageConversation, SuiviEntree } from "@/lib/types";
@@ -43,6 +44,12 @@ export function EcranCommande({ commandeId }: { commandeId: number }) {
   const [suivi, setSuivi] = useState<SuiviEntree[] | null>(null);
   const [messages, setMessages] = useState<MessageConversation[]>([]);
   const [feuilleStatutOuverte, setFeuilleStatutOuverte] = useState(false);
+  // Fil façon WhatsApp : l'API renvoie le plus récent en premier, on
+  // l'affiche du plus ancien (haut) au plus récent (bas, près de la saisie).
+  const messagesChrono = [...messages].reverse();
+  const { ref: filRef, onScroll, enBas, allerEnBas } = useDefilementBas(
+    `${onglet}-${suivi ? suivi.length : -1}-${messages.length}-${messages[0]?.id ?? 0}`
+  );
 
   async function chargerCommande() {
     if (!token) return;
@@ -102,6 +109,7 @@ export function EcranCommande({ commandeId }: { commandeId: number }) {
   async function envoyerMessage(texte: string) {
     if (!token) return;
     await apiFetch(`/commandes/${commandeId}/messages`, { method: "POST", token, body: { contenu: texte } });
+    allerEnBas();
     await chargerMessages();
   }
 
@@ -111,6 +119,7 @@ export function EcranCommande({ commandeId }: { commandeId: number }) {
     formData.append("fichier", blob, "message-vocal.webm");
     formData.append("type", "note_vocale");
     await apiFetch(`/commandes/${commandeId}/messages`, { method: "POST", token, body: formData });
+    allerEnBas();
     await chargerMessages();
   }
 
@@ -221,23 +230,26 @@ export function EcranCommande({ commandeId }: { commandeId: number }) {
         </div>
       ) : (
         <div className="relative flex flex-1 flex-col overflow-hidden">
-          <div className="flex-1 space-y-4 overflow-y-auto bg-[#f6f2ed] px-4 py-4">
+          <div ref={filRef} onScroll={onScroll} className="flex-1 space-y-4 overflow-y-auto bg-[#f6f2ed] px-4 py-4">
             <div className="rounded-[26px] bg-white p-4 shadow-sm shadow-slate-900/5">
               {suivi ? <TimelineSuivi entrees={suivi} /> : <p className="py-6 text-center text-sm text-brand-muted">Chargement…</p>}
             </div>
 
-            {messages.map((message) => (
+            {messagesChrono.map((message) => (
               <BulleMessage key={message.id} message={message} estMoi={message.auteur_id === user?.id} />
             ))}
           </div>
 
+          {enBas ? null : (
           <button
             type="button"
             aria-label="Revenir en bas"
+            onClick={() => allerEnBas(true)}
             className="absolute bottom-20 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg"
           >
             <ChevronDownIcon className="h-5 w-5" />
           </button>
+          )}
 
           <BarreDeSaisie onEnvoyer={envoyerMessage} onEnvoyerAudio={envoyerAudio} />
         </div>

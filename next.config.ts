@@ -24,6 +24,9 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: ${imgOrigins.join(" ")}`,
   "font-src 'self' data:",
+  // Notes vocales/audios des discussions, servis par le backend (même
+  // origine que les images) ; blob: pour une écoute locale avant envoi.
+  `media-src 'self' blob: ${imgOrigins.join(" ")}`,
   `connect-src 'self' ${API_ORIGIN}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",

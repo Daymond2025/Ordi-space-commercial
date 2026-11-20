@@ -9,6 +9,7 @@ import { CarteCommandeDiscussion } from "@/components/discussion/CarteCommandeDi
 import { BulleMessage } from "@/components/discussion/BulleMessage";
 import { BarreDeSaisie } from "@/components/discussion/BarreDeSaisie";
 import type { ConversationProduit, ItemFil, ProduitDetail } from "@/lib/types";
+import { useDefilementBas } from "@/lib/defilement";
 
 /**
  * "Discussion produit" — copié de Cordinateur_App_Web/src/app/(shell)/
@@ -70,6 +71,7 @@ export function EcranDiscussionProduit({ produitId }: { produitId: number }) {
   async function envoyerMessage(texte: string) {
     if (!token) return;
     await apiFetch(`/produits/${produitId}/messages`, { method: "POST", token, body: { contenu: texte } });
+    allerEnBas();
     await recharger();
   }
 
@@ -79,10 +81,17 @@ export function EcranDiscussionProduit({ produitId }: { produitId: number }) {
     formData.append("fichier", blob, "message-vocal.webm");
     formData.append("type", "note_vocale");
     await apiFetch(`/produits/${produitId}/messages`, { method: "POST", token, body: formData });
+    allerEnBas();
     await recharger();
   }
 
-  const items: ItemFil[] = conversation?.items ?? [];
+  // L'API renvoie le plus récent en premier : on inverse pour un fil façon
+  // WhatsApp (ancien en haut, récent en bas, juste au-dessus de la saisie).
+  const items: ItemFil[] = [...(conversation?.items ?? [])].reverse();
+  const derniere = items.at(-1);
+  const { ref: filRef, onScroll, allerEnBas } = useDefilementBas(
+    `${chargement}-${items.length}-${derniere?.type}-${derniere?.type === "commande" ? derniere.donnee.commande_id : derniere?.donnee.id}`
+  );
   const nomProduit = produit?.nom_produit ?? `Produit #${produitId}`;
   const photo = produit?.images[0]?.url_image ?? null;
 
@@ -100,7 +109,7 @@ export function EcranDiscussionProduit({ produitId }: { produitId: number }) {
       {/* Le "+" est posé sur ce conteneur (relative), HORS de la zone qui
           défile : il reste fixé en bas à droite pendant le défilement. */}
       <div className="relative min-h-0 flex-1">
-        <div className="h-full overflow-y-auto bg-[#f6f2ed]">
+        <div ref={filRef} onScroll={onScroll} className="h-full overflow-y-auto bg-[#f6f2ed]">
           <div className="space-y-3 px-3 py-4 pb-20">
             {chargement ? (
               <p className="py-10 text-center text-sm text-brand-muted">Chargement…</p>

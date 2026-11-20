@@ -21,9 +21,9 @@ function Onglet({ href, label, icone, actif }: { href: string; label: string; ic
           légèrement à l'appui (active:scale) et l'icône grossit en douceur. */}
       <span
         className={`flex flex-col items-center gap-1 rounded-2xl px-4 py-1.5 transition-all duration-300 ease-out group-active:scale-90 ${
-          actif ? "bg-[#EAF3FF]" : "bg-transparent"
+          actif ? "bg-[#D3E6FF]" : "bg-transparent"
         }`}
-        style={{ boxShadow: actif ? "0px 4px 14px 0px rgba(0, 119, 255, 0.38), 0px 1px 3px 0px rgba(0, 119, 255, 0.25)" : "0px 0px 0px 0px rgba(0, 119, 255, 0)" }}
+        style={{ boxShadow: actif ? "0px 4px 14px 0px rgba(0, 119, 255, 0.45), 0px 0px 0px 1px rgba(0, 119, 255, 0.12)" : "0px 0px 0px 0px rgba(0, 119, 255, 0)" }}
       >
         {/* Halo bleu de l'icône : filtre posé sur ce conteneur (sur l'icône
             elle-même, le masque ci-dessous effacerait l'ombre). */}
