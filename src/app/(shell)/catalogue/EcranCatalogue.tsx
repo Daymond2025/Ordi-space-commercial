@@ -16,30 +16,25 @@ const CATEGORIES = [
 ] as const;
 
 /**
- * Bâche (public/images/bache-marketspace.png, 1536×1024, fond transparent) :
- * la bâche n'occupe que x 88→1464 et y 254→490 de l'image. On cadre l'image
- * sur cette zone, étirée sur toute la largeur de l'écran et collée en haut
+ * Bâche bleu et blanc (public/images/auvent-raye.png, 866×288, fond
+ * transparent) : la bâche n'occupe que x 30→836 et y 92→198 de l'image. On
+ * cadre l'image sur cette zone, étirée sur toute la largeur de l'écran
  * (taille/position calculées depuis ces bornes), avec un léger espace
- * au-dessus ; ses festons reposent sur le rectangle Market'Space. Les vides
- * entre les dessus des bandes rouges sont comblés (voir STYLE_BACHE).
+ * au-dessus ; ses festons reposent sur le rectangle Market'Space.
  */
-// festons : hauteur (px image) du bas arrondi des bandes, sous laquelle le rectangle se glisse.
-// hautPerspective : hauteur (px image) du dessus des bandes, vu en perspective.
-const BACHE = { image: { l: 1536, h: 1024 }, x: 88, y: 254, l: 1377, h: 237, hautPerspective: 106, festons: 30 };
+// festons : de combien (px image) le rectangle remonte sous le bas des festons — juste le bout,
+// pour que les festons bleus restent visibles sur le rectangle bleu.
+const BACHE = { image: { l: 866, h: 288 }, x: 30, y: 92, l: 807, h: 107, festons: 6 };
 const STYLE_BACHE: CSSProperties = {
   aspectRatio: `${BACHE.l} / ${BACHE.h}`,
-  // 2e couche : dessus des bandes blanches (transparents dans l'image, d'où
-  // les triangles vides entre les bandes rouges), couleur des bandes blanches.
-  backgroundImage: `url(/images/bache-marketspace.png), linear-gradient(to bottom, #D3E2E7 0%, #E7F3F5 ${
-    (100 * BACHE.hautPerspective) / BACHE.h
-  }%, transparent ${(100 * BACHE.hautPerspective) / BACHE.h}%)`,
-  backgroundRepeat: "no-repeat, no-repeat",
+  backgroundImage: "url(/images/auvent-raye.png)",
+  backgroundRepeat: "no-repeat",
   // Largeur de l'image telle que la bâche fasse 100 % de l'écran, puis
   // position (en %) qui place le coin haut-gauche de la bâche en (0, 0).
-  backgroundSize: `${(100 * BACHE.image.l) / BACHE.l}% auto, 100% 100%`,
+  backgroundSize: `${(100 * BACHE.image.l) / BACHE.l}% auto`,
   backgroundPosition: `${(100 * BACHE.x) / (BACHE.image.l - BACHE.l)}% ${
     (100 * BACHE.y) / ((BACHE.image.h * BACHE.l) / BACHE.image.l - BACHE.h)
-  }%, 0 0`,
+  }%`,
 };
 
 /**

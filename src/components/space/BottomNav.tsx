@@ -11,27 +11,54 @@ const ONGLETS = [
 
 function Onglet({ href, label, icone, actif }: { href: string; label: string; icone: string; actif: boolean }) {
   return (
-    <Link href={href} className="relative flex flex-1 flex-col items-center gap-1 py-2">
-      {/* `mask-image` (pas `filter: brightness(0)`) : recolore l'icône via
-          `background-color` quelle que soit sa couleur source — même
-          technique que Ordi'Space_Fournisseur_App/src/components/space/BottomNav.tsx. */}
+    <Link
+      href={href}
+      aria-current={actif ? "page" : undefined}
+      className="group relative flex flex-1 items-center justify-center py-1.5 [-webkit-tap-highlight-color:transparent]"
+    >
+      {/* Onglet actif : pastille arrondie bleu très clair avec une ombre bleue
+          douce, qui apparaît en fondu. Réactif : la pastille se resserre
+          légèrement à l'appui (active:scale) et l'icône grossit en douceur. */}
       <span
-        aria-hidden="true"
-        className="h-[22px] w-[22px] shrink-0"
-        style={{
-          backgroundColor: actif ? "var(--brand-blue-end)" : "#9CA3AF",
-          WebkitMaskImage: `url(${icone})`,
-          maskImage: `url(${icone})`,
-          WebkitMaskSize: "contain",
-          maskSize: "contain",
-          WebkitMaskRepeat: "no-repeat",
-          maskRepeat: "no-repeat",
-          WebkitMaskPosition: "center",
-          maskPosition: "center",
-        }}
-      />
-      <span className={`text-center text-[10px] font-medium leading-tight ${actif ? "text-[color:var(--brand-blue-end)]" : "text-brand-muted"}`}>
-        {label}
+        className={`flex flex-col items-center gap-1 rounded-2xl px-4 py-1.5 transition-all duration-300 ease-out group-active:scale-90 ${
+          actif ? "bg-[#EAF3FF]" : "bg-transparent"
+        }`}
+        style={{ boxShadow: actif ? "0px 4px 14px 0px rgba(0, 119, 255, 0.38), 0px 1px 3px 0px rgba(0, 119, 255, 0.25)" : "0px 0px 0px 0px rgba(0, 119, 255, 0)" }}
+      >
+        {/* Halo bleu de l'icône : filtre posé sur ce conteneur (sur l'icône
+            elle-même, le masque ci-dessous effacerait l'ombre). */}
+        <span
+          className={`flex shrink-0 transition-all duration-300 ease-out ${actif ? "-translate-y-0.5 scale-110" : ""}`}
+          style={{
+            filter: actif ? "drop-shadow(0px 4px 6px rgba(0, 119, 255, 0.85)) drop-shadow(0px 0px 9px rgba(0, 119, 255, 0.5))" : "none",
+          }}
+        >
+          {/* `mask-image` (pas `filter: brightness(0)`) : recolore l'icône via
+              `background-color` quelle que soit sa couleur source — même
+              technique que Ordi'Space_Fournisseur_App/src/components/space/BottomNav.tsx. */}
+          <span
+            aria-hidden="true"
+            className="h-[22px] w-[22px] shrink-0 transition-colors duration-300"
+            style={{
+              backgroundColor: actif ? "var(--brand-blue-end)" : "#9CA3AF",
+              WebkitMaskImage: `url(${icone})`,
+              maskImage: `url(${icone})`,
+              WebkitMaskSize: "contain",
+              maskSize: "contain",
+              WebkitMaskRepeat: "no-repeat",
+              maskRepeat: "no-repeat",
+              WebkitMaskPosition: "center",
+              maskPosition: "center",
+            }}
+          />
+        </span>
+        <span
+          className={`text-center text-[10px] leading-tight transition-colors duration-300 ${
+            actif ? "font-bold text-[color:var(--brand-blue-end)]" : "font-medium text-brand-muted"
+          }`}
+        >
+          {label}
+        </span>
       </span>
     </Link>
   );
