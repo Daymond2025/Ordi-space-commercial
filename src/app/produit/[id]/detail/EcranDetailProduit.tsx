@@ -274,7 +274,10 @@ export function EcranDetailProduit({ produitId }: { produitId: number }) {
       {!produit ? (
         <p className="py-10 text-center text-sm text-brand-muted">Chargement…</p>
       ) : (
-        <div className="space-y-4 px-4 py-4">
+        <div className="space-y-4 px-4 pb-4">
+          {/* Fond blanc net sous le header : type de produit, disponibilité,
+              quantité, photo principale et miniatures. */}
+          <div className="-mx-4 space-y-4 bg-white px-4 py-4">
           <div className="flex flex-wrap gap-2">
             {produit.categorie ? <Badge couleur="bleu" label={produit.categorie.nom_categorie} /> : null}
             {produit.est_booste ? <Badge couleur="vert" label="Booster" /> : null}
@@ -330,6 +333,7 @@ export function EcranDetailProduit({ produitId }: { produitId: number }) {
               ))}
             </div>
           ) : null}
+          </div>
 
           <div className="rounded-2xl bg-white p-4 shadow-sm shadow-slate-900/5">
             <div className="flex flex-wrap items-center gap-2">

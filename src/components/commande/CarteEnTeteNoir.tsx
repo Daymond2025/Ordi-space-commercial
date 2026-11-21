@@ -9,7 +9,7 @@ export function CarteEnTeteNoir({ titre, children }: { titre: string; children: 
   return (
     <div className="overflow-hidden rounded-[9px] bg-white">
       <div className="flex w-full items-center justify-center bg-black px-3.5 py-2.5">
-        <span className="text-xs font-extrabold uppercase tracking-wide text-white underline decoration-[color:var(--brand-blue-end)] decoration-2 underline-offset-4">
+        <span className="text-xs font-extrabold uppercase tracking-wide text-white">
           {titre}
         </span>
       </div>
