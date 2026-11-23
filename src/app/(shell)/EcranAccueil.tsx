@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { CarteStatistique } from "@/components/space/CarteStatistique";
 import { SelecteurPeriode } from "@/components/space/SelecteurPeriode";
+import { ClocheNotifications } from "@/components/notifications/Notifications";
 import { CarteProduitActif } from "@/components/space/CarteProduitActif";
 import { formaterMontant } from "@/lib/types";
 import type { PeriodeEspace, ProduitActifCommercial, ProfilUtilisateur, StatistiquesCommercial } from "@/lib/types";
@@ -105,7 +106,10 @@ export function EcranAccueil() {
               </div>
             </div>
 
-            <SelecteurPeriode value={periode} onChange={setPeriode} />
+            <div className="flex items-center gap-2">
+              <ClocheNotifications className="bg-white/15 text-white" />
+              <SelecteurPeriode value={periode} onChange={setPeriode} />
+            </div>
           </div>
         </div>
 
